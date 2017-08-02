@@ -5,23 +5,31 @@ var path = require('path');
 var unwatchedTree = require('broccoli-unwatched-tree');
 var mergeTrees = require('broccoli-merge-trees');
 var pickFiles = require('broccoli-static-compiler');
+var map = require('broccoli-stew').map;
 
 module.exports = {
   name: 'ember-cli-velocity',
 
   treeForVendor: function treeForVendor() {
-     var emberCliVelocity = unwatchedTree(path.join(__dirname, 'vendor'));
-     var velocityAnimate = pickFiles(unwatchedTree(require.resolve('velocity-animate').replace('velocity.js', '')), {
-       srcDir: '/',
-       files: ['*.js'],
-       destDir: 'velocity-animate'
+    var emberCliVelocity = unwatchedTree(path.join(__dirname, 'vendor'));
+    var velocityAnimate = pickFiles(unwatchedTree(require.resolve('velocity-animate').replace('velocity.js', '')), {
+      srcDir: '/',
+      files: ['*.js'],
+      destDir: 'velocity-animate'
     });
-    return mergeTrees([emberCliVelocity, velocityAnimate]);
+
+    emberCliVelocity = map(emberCliVelocity, (content) => `if (typeof FastBoot === 'undefined') { ${content} }`);
+    velocityAnimate = map(velocityAnimate, (content) => `if (typeof FastBoot === 'undefined') { ${content} }`);
+
+    return new mergeTrees([emberCliVelocity, velocityAnimate]);
   },
 
-  velocityOptions: function () {
-    var env  = process.env.EMBER_ENV;
-    return this.project.config(env).velocityOptions || { enabled: true, ui: false };
+  velocityOptions: function() {
+    var env = process.env.EMBER_ENV;
+    return this.project.config(env).velocityOptions || {
+      enabled: true,
+      ui: false
+    };
   },
 
   included: function(app) {
